@@ -274,6 +274,7 @@ class FancyChart {
   startChangeChartArea ({ target, x }) {
     const { mapCtx: { canvas: { offsetLeft, width } }, xAxis, viewPortAreaCtrl, start, end } = this
     const mouseStartX = x - offsetLeft
+    this.mousePrevX = mouseStartX
 
     let transformType = null
     switch (true) {
@@ -288,14 +289,15 @@ class FancyChart {
     const handleChartTransform = this.changeChartArea.bind(this, transformType, mouseStartX, start, end)
     target.addEventListener('mousemove', handleChartTransform)
     target.addEventListener('mouseup', () => {
-      console.log('remove')
       target.removeEventListener('mousemove', handleChartTransform)
     })
   }
 
   changeChartArea (transformType, mouseStartX, vpStartSnapshot, vpEndSnapshot, { x }) {
-    let { mapCtx: { canvas: { offsetLeft, width } }, xAxis, start, end } = this
+    let { mapCtx: { canvas: { offsetLeft, width } }, xAxis, start, end, mousePrevX } = this
     x = x - offsetLeft
+    if (Math.abs(x - mousePrevX) < 10) return
+    this.mousePrevX = x
     
     switch (transformType) {
       case 'resizeLeft': 
