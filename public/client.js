@@ -308,5 +308,8 @@ class FancyChart {
   }*/
 }
 
-const chart = new FancyChart('app')
-chart.loadChart(JSON_DATA[3])
+JSON_DATA.forEach(data => {
+  const chart = new FancyChart('app')
+  chart.loadChart(data)
+})
+
