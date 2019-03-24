@@ -170,7 +170,8 @@ class FancyChart {
   }
 
   render () {
-    const { ctx: { canvas: { width, height } }, ctx, xAxis, lines, start, end, maxY, colors, lineStep, selectedIndex } = this
+    const { ctx: { canvas: { width, height, offsetTop } }, 
+      ctx, xAxis, lines, start, end, maxY, colors, lineStep, selectedIndex } = this
     ctx.clearRect(0, 0, width, height)
 
     ctx.beginPath()
@@ -200,6 +201,7 @@ class FancyChart {
     if (selectedIndex) {
       this.descriptionWindow.style.display = 'block'
       this.descriptionWindow.style.left = Math.abs(selectedX - this.descriptionWindow.clientWidth - 50) + 'px'
+      this.descriptionWindow.style.top = offsetTop + 50 + 'px'
       this.descriptionDate.innerText = new Date(xAxis[selectedIndex]).toLocaleDateString('us', {
         weekday: 'short',
         month: 'short',
