@@ -40,7 +40,7 @@ class FancyChart {
     addEventListener('resize', this.handleResize.bind(this))
   }
 
-  loadChart = ({ columns = [], types, colors, names }) => {
+  loadChart ({ columns = [], types, colors, names }) {
     columns.forEach(([ label, ...values ]) => {
       if (types[label] === 'x')
         this.xAxis = values.sort((a, b) => a - b)
