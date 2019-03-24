@@ -68,8 +68,8 @@ class FancyChart {
     this.disabledLines = []
     this.colors = colors
     this.names = names
-    this.renderMap()
     this.setViewPort(this.start, this.end)
+    this.renderMap()
   }
 
   calcYScale (steps) {
@@ -154,6 +154,7 @@ class FancyChart {
       this.disabledLines.push(...this.lines.splice(index, 1))
     }
     //this.drawDescriptionWindow()
+    //this.renderMap()
     this.calcYScale(20)
     this.animateYScale()
   }
@@ -161,7 +162,7 @@ class FancyChart {
   setViewPort (start, end) {
     this.start = start
     this.end = end
-    this.lineStep = end - start > 20 ? Math.round((end - start) / 20) : 1
+    this.lineStep = end - start > 30 ? Math.round((end - start) / 30) : 1
     this.renderMap()
     this.calcXScale(30)
     this.calcYScale(20)
@@ -239,14 +240,17 @@ class FancyChart {
   }
 
   renderMap () {
-    const { mapCtx: { canvas: { width, height } }, mapCtx: ctx, xAxis, lines, start, end, colors, lineStep } = this
+    const { mapCtx: { canvas: { width, height } }, mapCtx: ctx, 
+      xAxis, lines, disabledLines, start, end, colors, lineStep } = this
     ctx.clearRect(0, 0, width, height)
 
     this.mapXScale = width / (xAxis[xAxis.length - 1] - xAxis[0])
-    const maxY = Math.max(...[].concat(...lines.map(([ _, ...Y ]) => Y)))
+    console.log('MAP X SCALE', this.mapXScale)
+    const allLines = [ ...lines, ...disabledLines ]
+    const maxY = Math.max(...[].concat(...allLines.map(([ _, ...Y ]) => Y)))
     this.mapYScale = height / maxY
 
-    lines.forEach(([ label, ...Y ]) => {
+    allLines.forEach(([ label, ...Y ]) => {
       ctx.beginPath()
       ctx.strokeStyle = colors[label]
       ctx.lineJoin = 'round'
