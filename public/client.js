@@ -63,8 +63,8 @@ class FancyChart {
       }
     })
     
-    this.start = 0
-    this.end = Math.round((this.xAxis.length - 1) / 4) 
+    this.start =  Math.round((this.xAxis.length - 1) / 4)
+    this.end = Math.round((this.xAxis.length - 1) / 2) 
     this.disabledLines = []
     this.colors = colors
     this.names = names
