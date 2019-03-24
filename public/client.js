@@ -13,7 +13,7 @@ class FancyChart {
     chartMap.width = window.innerWidth * 0.9
     chartMap.height = 150
     chartMap.style.cursor = 'pointer'
-    chartMap.addEventListener('click', this.changeChartArea.bind(this))
+    chartMap.addEventListener('mousedown', this.startChangeChartArea.bind(this))
     this.mapCtx = chartMap.getContext('2d')
     
     this.descriptionWindow = this.container.appendChild(document.createElement('div'))
@@ -103,7 +103,6 @@ class FancyChart {
     const { dxScale, xSteps } = this
     if (xSteps > 1)
       requestAnimationFrame(this.animateXScale.bind(this))
-
     this.xSteps--
     this.xScale += dxScale
     this.render()
@@ -134,7 +133,6 @@ class FancyChart {
     }
     
     this.selectedIndex = nearestIndex
-    //this.drawDescriptionWindow()
     this.render()
   }
 
@@ -143,7 +141,6 @@ class FancyChart {
     if (el.querySelector('input').getAttribute('checked'))
       el.querySelector('span').style.backgroundColor = this.colors[name]
     
-    console.log(name)
     const index = this.lines.findIndex(([ label ]) => label === name)
     if (index === -1) {
       this.lines.push(
@@ -153,8 +150,6 @@ class FancyChart {
     else {
       this.disabledLines.push(...this.lines.splice(index, 1))
     }
-    //this.drawDescriptionWindow()
-    //this.renderMap()
     this.calcYScale(20)
     this.animateYScale()
   }
@@ -162,7 +157,7 @@ class FancyChart {
   setViewPort (start, end) {
     this.start = start
     this.end = end
-    this.lineStep = end - start > 30 ? Math.round((end - start) / 30) : 1
+    this.lineStep = end - start > 25 ? Math.round((end - start) / 25) : 1
     this.renderMap()
     this.calcXScale(30)
     this.calcYScale(20)
@@ -245,7 +240,7 @@ class FancyChart {
     ctx.clearRect(0, 0, width, height)
 
     this.mapXScale = width / (xAxis[xAxis.length - 1] - xAxis[0])
-    console.log('MAP X SCALE', this.mapXScale)
+    
     const allLines = [ ...lines, ...disabledLines ]
     const maxY = Math.max(...[].concat(...allLines.map(([ _, ...Y ]) => Y)))
     this.mapYScale = height / maxY
@@ -268,7 +263,7 @@ class FancyChart {
     ctx.lineWidth = 1
     this.viewPortAreaCtrl['start'] = Math.round((xAxis[start] - xAxis[0]) * this.mapXScale)
     this.viewPortAreaCtrl['end'] = Math.round((xAxis[end] - xAxis[0]) * this.mapXScale)
-    console.log(this.viewPortAreaCtrl)
+    
     ctx.fillRect(0, 0, this.viewPortAreaCtrl.start, height)
     ctx.stroke()
     ctx.beginPath()
@@ -276,46 +271,52 @@ class FancyChart {
     ctx.stroke()
   }
 
-  /*startChangeChartArea ({ target }) {
-    target.addEventListener('mousemove', this.changeChartArea.bind(this))
-  }*/
+  startChangeChartArea ({ target, x }) {
+    const { mapCtx: { canvas: { offsetLeft, width } }, xAxis, viewPortAreaCtrl, start, end } = this
+    const mouseStartX = x - offsetLeft
 
-  changeChartArea ({ x }) {
-    const { mapCtx: { canvas: { offsetLeft, width } }, xAxis, start, end, viewPortAreaCtrl } = this
-    x = x - offsetLeft
-    console.log(x)
-    let selectedIndex = Math.round(xAxis.length * x / width)
-    if (((x - viewPortAreaCtrl.start < 15 && x - viewPortAreaCtrl.start > 0) 
-    || (viewPortAreaCtrl.end - x < 15 && viewPortAreaCtrl.end - x > 0)) && end - start > xAxis.length * 0.25) {
-      this.start = start + Math.round(xAxis.length * 0.1)
-      this.end = end - Math.round(xAxis.length * 0.1)
-      console.log(this.start)
-    }
-    else if (start < selectedIndex && end > selectedIndex) {
-      console.log(start - Math.round(xAxis.length * 0.1))
-      this.start = start - Math.round(xAxis.length * 0.1)
-      this.end = end + Math.round(xAxis.length * 0.1)
-    }
-    else {
-      this.end = selectedIndex
-      this.start = this.end - end + start
-    }
-    if (this.start < 0) this.start = 0
-    if (this.end > xAxis.length - 1) this.end = xAxis.length - 1
+    let transformType = null
+    switch (true) {
+      case mouseStartX - viewPortAreaCtrl.start < 20 && mouseStartX - viewPortAreaCtrl.start > 0: 
+        transformType = 'resizeLeft'; break
+      case viewPortAreaCtrl.end - mouseStartX < 20 && viewPortAreaCtrl.end - mouseStartX > 0:
+        transformType = 'resizeRight'; break
+      case mouseStartX > viewPortAreaCtrl.start && mouseStartX < viewPortAreaCtrl.end:
+        transformType = 'move'
 
-    console.log('START', this.start)
-    this.setViewPort(this.start, this.end)
+    }
+    const handleChartTransform = this.changeChartArea.bind(this, transformType, mouseStartX, start, end)
+    target.addEventListener('mousemove', handleChartTransform)
+    target.addEventListener('mouseup', () => {
+      console.log('remove')
+      target.removeEventListener('mousemove', handleChartTransform)
+    })
   }
 
+  changeChartArea (transformType, mouseStartX, vpStartSnapshot, vpEndSnapshot, { x }) {
+    let { mapCtx: { canvas: { offsetLeft, width } }, xAxis, start, end } = this
+    x = x - offsetLeft
+    
+    switch (transformType) {
+      case 'resizeLeft': 
+        start = Math.round(xAxis.length * x / width); break
+      case 'resizeRight':
+        end = Math.round(xAxis.length * x / width); break
+      case 'move':
+        const diffX = Math.round(xAxis.length * (x - mouseStartX) / width) 
+        start = vpStartSnapshot + diffX
+        end = vpEndSnapshot + diffX
+    }
 
+    if (start < 0) start = 0
+    if (end > xAxis.length - 1) end = xAxis.length - 1
+    if (end - start < xAxis.length * 0.1) return
 
-  /*stopChangeChartArea () {
-    target.removeEventListener('mousemove', this.changeChartArea.bind(this))
-  }*/
+    this.setViewPort(start, end)
+  }
 }
 
 JSON_DATA.forEach(data => {
   const chart = new FancyChart('app')
   chart.loadChart(data)
 })
-
